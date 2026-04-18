@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BRAND } from "@/lib/constants";
+import { Suspense } from "react";
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error") || "unknown";
 
@@ -48,5 +49,13 @@ export default function AuthErrorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense>
+      <AuthErrorContent />
+    </Suspense>
   );
 }
