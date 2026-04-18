@@ -30,6 +30,9 @@ const CLIENTS = [
   { id: 20, initials: "CA", color: "#121264", name: "Todo Luz",     rubro: "Elecricidad",      ubicacion: "Rada Tilly - Chubut",             logo: "" },
   { id: 20, initials: "CA", color: "#121264", name: "Carlos Coetsee",     rubro: "Productor Seguros",      ubicacion: "Rada Tilly - Chubut",             logo: "" },
   { id: 21, initials: "CA", color: "#2f2fbf", name: "Iveco",     rubro: "Venta Camiones",      ubicacion: "Rada Tilly - Chubut",             logo: "" },
+  { id: 22, initials: "CA", color: "#121217", name: "Ossira",     rubro: "Indumentaria",      ubicacion: "Comodoro Rivadavia - Chubut",             logo: "" },
+  { id: 23, initials: "CA", color: "#21762f", name: "INVAP",     rubro: "Servicios Petroleros",      ubicacion: "Comodoro Rivadavia - Chubut",             logo: "" },
+  { id: 24, initials: "CA", color: "#2d2d31", name: "OSX",     rubro: "Indumentaria",      ubicacion: "Comodoro Rivadavia - Chubut",             logo: "" },
 ];
 
 function ClientCard({ client }: { client: typeof CLIENTS[0] }) {
