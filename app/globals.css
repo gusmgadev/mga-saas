@@ -1,5 +1,52 @@
 @import "tailwindcss";
 
+@keyframes shimmer-text {
+  0%   { background-position: 0% center; }
+  50%  { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+.shimmer-frase {
+  background: linear-gradient(90deg, #3d3d3d 0%, #7a746e 25%, #b0a9a0 50%, #7a746e 75%, #3d3d3d 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-text 5s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes ticker-scroll-reverse {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.ticker-track {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  animation: ticker-scroll 200s linear infinite;
+}
+
+.ticker-track-reverse {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  animation: ticker-scroll-reverse 100s linear infinite;
+}
+
+.ticker-track:hover,
+.ticker-track-reverse:hover {
+  animation-play-state: paused;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

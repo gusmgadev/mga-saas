@@ -1,0 +1,140 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { BRAND, SERVICES } from "@/lib/constants";
+
+
+export function Navbar() {
+  const [servicesOpen, setServicesOpen] = useState(false);
+
+  return (
+    <nav className="sticky top-0 z-50 bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-20 items-center gap-4">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/images/logos/mga-logo.png"
+              alt="MGA Informática"
+              width={200}
+              height={60}
+              priority
+              className="h-16 w-auto"
+            />
+          </Link>
+          {/* Centro */}
+          <div className="hidden md:flex flex-row items-center gap-4 flex-1 justify-center">
+            <motion.span
+              className="inline-block text-sm font-bold tracking-widest uppercase select-none bg-clip-text text-transparent"
+              style={{
+                backgroundImage: "linear-gradient(90deg, #3d3d3d 0%, #7a746e 50%, #3d3d3d 100%)",
+              }}
+              animate={{ scale: [1, 1.05, 1], opacity: [1, 0.7, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              Soluciones Tecnológicas
+            </motion.span>
+          </div>
+          {/* Menu */}
+          <div className="hidden md:flex gap-8 items-center">
+            <div
+              className="relative"
+              onMouseEnter={() => setServicesOpen(true)}
+              onMouseLeave={() => setServicesOpen(false)}
+            >
+              <button
+                className="flex items-center gap-1 font-medium transition-all duration-300 py-2 px-3 rounded"
+                style={{ color: BRAND.colors.primary }}
+              >
+                Nuestros Servicios
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform duration-200 ${servicesOpen ? "rotate-180" : ""}`}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              {servicesOpen && (
+                <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                  {SERVICES.map((service) => (
+                    <Link
+                      key={service.slug}
+                      href={`/servicios/${service.slug}`}
+                      className="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ background: BRAND.colors.secondary }}
+                      />
+                      {service.title}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <a
+              href="/#clientes"
+              className="font-medium transition-all duration-300 py-2 px-3 rounded"
+              style={{ color: BRAND.colors.primary }}
+              onMouseEnter={(e) => e.currentTarget.style.color = BRAND.colors.secondary}
+              onMouseLeave={(e) => e.currentTarget.style.color = BRAND.colors.primary}
+            >
+              Clientes
+            </a>
+            <a
+              href="/#zoologic"
+              className="font-medium transition-all duration-300 py-2 px-3 rounded"
+              style={{ color: BRAND.colors.primary }}
+              onMouseEnter={(e) => e.currentTarget.style.color = BRAND.colors.secondary}
+              onMouseLeave={(e) => e.currentTarget.style.color = BRAND.colors.primary}
+            >
+              Zoologic
+            </a>
+            <a
+              href="/#process"
+              className="font-medium transition-all duration-300 py-2 px-3 rounded"
+              style={{ color: BRAND.colors.primary }}
+              onMouseEnter={(e) => e.currentTarget.style.color = BRAND.colors.secondary}
+              onMouseLeave={(e) => e.currentTarget.style.color = BRAND.colors.primary}
+            >
+              Proceso
+            </a>
+            <a
+              href="/#contact"
+              className="font-normal transition-all duration-300 whitespace-nowrap"
+              style={{ color: "#16a34a", fontFamily: "var(--font-poppins)" }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#15803d"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#16a34a"}
+            >
+              ¡Contactanos y Empezá Ya!
+            </a>
+          </div>
+
+          {/* Mobile menu button */}
+          <button className="md:hidden">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+}
