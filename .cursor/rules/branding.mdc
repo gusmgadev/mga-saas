@@ -1,0 +1,49 @@
+---
+description: Branding, diseño visual y componentes UI del proyecto
+globs: ["**/*.tsx", "**/*.css"]
+alwaysApply: false
+---
+
+# Branding y UI - MGA SaaS
+
+## Paleta de colores
+| Nombre | Hex | Uso |
+|--------|-----|-----|
+| Azul Marino (primario) | `#2E5C8A` | Textos principales, bordes |
+| Azul Cielo (secundario) | `#6BA3D0` | Acentos, hover |
+| Azul Gradiente | `#A8D0E8` | Fondos suaves, degradados |
+
+**Regla de oro:** Siempre degradados, nunca colores sólidos en elementos destacados.
+
+## Tipografía
+- **DM Sans** (Google Fonts) — única fuente del proyecto
+- Jerarquía: títulos grandes con gradient text, cuerpo en gris oscuro
+
+## Logos disponibles
+- MGA: `public/images/logos/mga-logo.png`
+- Dragonfish: `public/images/logos/dragonfish-logo.png`
+- Lince: `public/images/logos/lince-logo.png`
+- Pantera: `public/images/logos/pantera-logo.png`
+
+## Orden de secciones en Landing
+1. Navbar
+2. Hero (gradientes + Framer Motion)
+3. Services (4 cards con iconos Lucide)
+4. ZooLogic (Dragonfish, Lince, Pantera)
+5. Process (timeline horizontal, 5 pasos)
+6. Why Us (diferenciales)
+7. Testimonials (3 casos de éxito)
+8. Contact Form (validación React Hook Form + Zod)
+9. Footer
+
+## Componentes existentes
+Todos en `/components/`:
+`navbar.tsx`, `hero.tsx`, `services.tsx`, `logo.tsx`, `zoologic.tsx`,
+`process.tsx`, `why-us.tsx`, `testimonials.tsx`, `contact-form.tsx`, `footer.tsx`
+
+**Importante:** La sección "Clients" fue eliminada el 14/04/2026. No recrearla.
+
+## Animaciones
+- Usar Framer Motion para scroll animations y hover effects
+- Patrón estándar: `initial={{ opacity: 0, y: 20 }}` → `animate={{ opacity: 1, y: 0 }}`
+- `viewport={{ once: true }}` en todas las animaciones de scroll

@@ -1,0 +1,51 @@
+---
+description: Convenciones de código y reglas del proyecto
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: true
+---
+
+# Convenciones de Código - MGA SaaS
+
+## Naming
+- Componentes: PascalCase (`HeroSection.tsx`)
+- Funciones y variables: camelCase
+- Constantes globales: UPPER_SNAKE_CASE
+- Archivos de componentes: kebab-case (`contact-form.tsx`)
+
+## TypeScript
+- Tipado estricto siempre, nunca usar `any`
+- Props de componentes siempre tipadas con `interface`
+- Usar tipos de `lib/database.types.ts` para datos de Supabase
+
+## Componentes
+- Un componente por archivo
+- Server Components por defecto; agregar `"use client"` solo si es necesario
+- Props opcionales con `?` y valor por defecto cuando aplique
+
+## Estilos
+- Solo Tailwind CSS, sin styled-components ni CSS modules
+- Colores del proyecto definidos en `tailwind.config.ts`:
+  - Primario (marino): `#2E5C8A`
+  - Secundario (cielo): `#6BA3D0`  
+  - Gradiente: `#A8D0E8`
+- Usar degradados, nunca colores sólidos en botones y textos destacados
+- Animaciones con Framer Motion, nunca CSS puro para animaciones complejas
+
+## Estructura de archivos
+- Lógica de negocio en `lib/`, nunca en componentes
+- Server Actions en `app/actions/` (cuando se implementen)
+- Variables de entorno: siempre en `.env.local`, nunca hardcodeadas
+- Constantes globales en `lib/constants.ts`
+
+## API Routes
+- Validar inputs siempre (Zod en backend)
+- Mensajes de error en español
+- Respuestas tipadas con TypeScript
+
+## Comentarios
+- Comentarios en español
+- JSDoc para funciones complejas o utilitarios en `lib/`
+
+## Git
+- Commits en español, descriptivos
+- Nunca commitear `.env.local`

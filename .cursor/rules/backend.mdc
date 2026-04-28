@@ -1,0 +1,72 @@
+---
+description: Base de datos Supabase, autenticación y backend
+globs: ["**/lib/**", "**/api/**", "**/actions/**"]
+alwaysApply: false
+---
+
+# Backend y Base de Datos - MGA SaaS
+
+## Estado real al 28/04/2026
+- Contacto: API recibe y valida campos, pero NO persiste ni envía mail todavía
+- Auth: NextAuth configurado con Credentials provider en modo placeholder (devuelve usuario mock)
+- Supabase: clientes configurados en lib/supabase.ts pero sin operaciones reales implementadas
+
+## Supabase
+- URL: `process.env.NEXT_PUBLIC_SUPABASE_URL`
+- Cliente browser/server: usar fábricas en `lib/supabase.ts`
+- RLS (Row Level Security) habilitado para multi-tenancy
+- Tipos TypeScript en `lib/database.types.ts`
+
+## Tablas definidas (tipado listo, sin uso real aún)
+```sql
+tenants   → id, name, slug, domain, logo_url, created_at
+users     → id, email, password_hash, full_name, tenant_id, created_at
+contacts  → id, name, email, message, phone, tenant_id, created_at
+```
+
+## Autenticación (NextAuth v5)
+- Config en `lib/auth.ts`
+- Credentials Provider con `authorize()` en placeholder (retorna mock)
+- JWT strategy
+- Páginas custom: `/auth/signin` (UI lista), `/auth/error`
+- **TODO:** Implementar authorize() real con Supabase Auth
+- **TODO:** Conectar formulario signin con flujo real de NextAuth (hoy solo console.log)
+
+## API Endpoints existentes
+```
+POST /api/contact
+  Body: { name, email, message }
+  Estado: valida campos requeridos, responde éxito/error
+  TODO: Enviar email con Resend
+  TODO: Guardar en tabla contacts de Supabase
+
+GET|POST /api/auth/[...nextauth]
+  Estado: NextAuth handler activo, lógica real pendiente
+```
+
+## Pendientes críticos (en orden de prioridad)
+1. Integrar Resend → envío real de emails desde /api/contact
+2. Guardar contactos en Supabase → tabla contacts
+3. Implementar authorize() real en NextAuth con Supabase
+4. Validación backend robusta (hoy solo validación básica de campos)
+
+## Resend (email)
+- API key: `process.env.RESEND_API_KEY`
+- Email destino: `process.env.CONTACT_EMAIL_TO` (gustavo.mgainformatica@gmail.com)
+
+## Variables de entorno requeridas
+```
+NEXTAUTH_SECRET
+NEXTAUTH_URL
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+RESEND_API_KEY
+CONTACT_EMAIL_TO
+WHATSAPP_NUMBER
+```
+
+## Arquitectura multi-tenant (preparada para Etapa 2)
+- Domain-based routing: `tenant.miapp.com`
+- Aislamiento via Supabase RLS con `tenant_id`
+- Tabla `tenants` como entidad principal

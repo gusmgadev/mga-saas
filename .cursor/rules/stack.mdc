@@ -1,0 +1,38 @@
+---
+description: Stack tecnológico y dependencias del proyecto
+globs: ["**/*.ts", "**/*.tsx", "**/*.js"]
+alwaysApply: true
+---
+
+# Stack Tecnológico - MGA SaaS
+
+## Frontend
+- **Next.js 16.2.3** con App Router
+- **React 19.2.4**
+- **TypeScript** (tipado estricto, nunca usar `any`)
+- **Tailwind CSS 4** (utility-first, sin CSS custom salvo globals.css)
+- **Framer Motion** para animaciones scroll/hover
+- **Lucide React** para iconos (nunca emojis como iconos)
+- **React Hook Form + Zod** para formularios y validación
+
+## Backend
+- **Next.js API Routes** para endpoints
+- **NextAuth.js v5** con Credentials Provider
+- **Supabase** (PostgreSQL + Auth + RLS)
+
+## Servicios externos
+- **Resend** para emails transaccionales
+- **Vercel** para deploy
+- **Google Calendar API** (Etapa 2)
+- **Mercado Pago** (Etapa 3)
+
+## Tipografía y fuentes
+- **DM Sans** via Google Fonts (única fuente del proyecto)
+
+## Estructura de carpetas clave
+```
+app/           → Rutas Next.js (App Router)
+components/    → Componentes React reutilizables
+lib/           → Utils, configs, tipos
+public/images/ → Logos MGA y ZooLogic
+```

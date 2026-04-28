@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, message } = body;
+    const name = String(body?.name ?? "").trim();
+    const email = String(body?.email ?? "").trim();
+    const phone = String(body?.phone ?? "").trim();
+    const message = String(body?.message ?? "").trim();
 
     // Validación básica
     if (!name || !email || !message) {
@@ -14,17 +28,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Enviar email con Resend
-    console.log("Contact form received:", { name, email, message });
+    const contactEmailTo = process.env.CONTACT_EMAIL_TO;
+    const contactEmailFrom = process.env.CONTACT_EMAIL_FROM || "onboarding@resend.dev";
 
-    // TODO: Guardar en Supabase
-    // const supabase = createSupabaseServerClient();
-    // const { data, error } = await supabase
-    //   .from("contacts")
-    //   .insert([{ name, email, message, tenant_id: DEFAULT_TENANT_ID }]);
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { error: "RESEND_API_KEY no está configurada" },
+        { status: 500 }
+      );
+    }
+
+    if (!contactEmailTo) {
+      return NextResponse.json(
+        { error: "CONTACT_EMAIL_TO no está configurada" },
+        { status: 500 }
+      );
+    }
+
+    const sanitizedName = escapeHtml(name);
+    const sanitizedEmail = escapeHtml(email);
+    const sanitizedPhone = escapeHtml(phone);
+    const sanitizedMessage = escapeHtml(message).replaceAll("\n", "<br />");
+
+    const { error } = await resend.emails.send({
+      from: contactEmailFrom,
+      to: contactEmailTo,
+      replyTo: email,
+      subject: `Nueva consulta web - ${name}`,
+      html: `
+        <h2>Nueva consulta desde el formulario web</h2>
+        <p><strong>Nombre:</strong> ${sanitizedName}</p>
+        <p><strong>Email:</strong> ${sanitizedEmail}</p>
+        <p><strong>Teléfono:</strong> ${sanitizedPhone || "-"}</p>
+        <p><strong>Mensaje:</strong></p>
+        <p>${sanitizedMessage}</p>
+      `,
+    });
+
+    if (error) {
+      console.error("Error al enviar email con Resend:", error);
+      return NextResponse.json(
+        { error: "No se pudo enviar el email" },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json(
-      { success: true, message: "Mensaje recibido correctamente" },
+      { success: true, message: "Mensaje enviado correctamente" },
       { status: 200 }
     );
   } catch (error) {

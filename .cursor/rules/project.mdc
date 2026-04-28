@@ -1,0 +1,24 @@
+---
+description: Contexto general del proyecto MGA Informatica SaaS
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# MGA Informatica - Proyecto SaaS
+
+## Que es este proyecto?
+Sistema SaaS multi-tenant para MGA Informatica Soluciones Tecnologicas.
+Se desarrolla en 3 etapas:
+- Etapa 1: Landing Page (estado actual: ~90% completado)
+- Etapa 2: Sistema interno / Dashboard protegido
+- Etapa 3: E-commerce ZooLogic con Mercado Pago
+
+## Estado actual (28/04/2026)
+Etapa 1 avanzada. Landing completa y funcional con 12 componentes activos.
+SEO base implementado. Deploy activo en Vercel: https://mga-saas-znmh.vercel.app/
+Rutas publicas: / , /clientes, /servicios/[slug]
+Pendiente critico: integracion Resend, Supabase real, NextAuth funcional (hoy en placeholder).
+
+## Contacto del proyecto
+- Email: gustavo.mgainformatica@gmail.com
+- WhatsApp: +542974036526
