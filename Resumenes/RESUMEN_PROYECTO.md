@@ -18,7 +18,7 @@
 - `/auth/error` (pantalla de error de autenticación)
 
 ### API
-- `POST /api/contact` (recibe formulario, valida campos básicos, no persiste ni envía mail todavía)
+- `POST /api/contact` (recibe formulario, valida datos y envía emails reales con Resend)
 - `GET|POST /api/auth/[...nextauth]` (NextAuth con Credentials provider en modo placeholder)
 
 ### SEO técnico
@@ -66,7 +66,7 @@ Componentes activos detectados:
 
 ### Contacto
 - `contact-form.tsx` con `react-hook-form`, validaciones frontend y envío a `/api/contact`.
-- API de contacto responde éxito/error y valida campos requeridos.
+- API de contacto integrada con Resend: envía emails reales en producción, con manejo de errores y `replyTo` del remitente.
 
 ### Autenticación
 - NextAuth configurado con Credentials provider.
@@ -90,21 +90,20 @@ Componentes activos detectados:
 
 ## Pendientes detectados en codigo
 
-1. Integrar envío real de emails en `/api/contact` (TODO Resend).
-2. Guardar contactos en Supabase desde `/api/contact` (código comentado/TODO).
-3. Implementar autenticación real en NextAuth Credentials (hoy devuelve usuario mock).
-4. Conectar formulario de signin con flujo real de NextAuth (hoy solo `console.log`).
-5. Completar backend con validación robusta (actualmente validación básica de campos).
+1. Guardar contactos en Supabase desde `/api/contact` (código comentado/TODO).
+2. Implementar autenticación real en NextAuth Credentials (hoy devuelve usuario mock).
+3. Conectar formulario de signin con flujo real de NextAuth (hoy solo `console.log`).
+4. Completar backend con validación robusta (actualmente validación básica de campos).
 
 ---
 
 ## Diferencias con resumenes viejos
 
 - Los archivos históricos en `Resumenes/` mencionan estructura y estado que ya no coincide al 100% con el código actual.
-- El estado real hoy es: landing funcional y extensa, con SEO base implementado, pero integraciones críticas (Resend/Supabase auth real) todavía pendientes.
+- El estado real hoy es: landing funcional y extensa, con SEO base implementado y Resend operativo para contacto; queda pendiente completar persistencia en Supabase y autenticación real.
 
 ---
 
 ## Conclusion
 
-El proyecto tiene una **base frontend sólida y bastante completa para Etapa 1** (landing + rutas públicas + SEO base + estructura multi-tenant inicial), pero aún falta cerrar las piezas backend para pasar de demo funcional a flujo productivo completo: **contacto real persistente + autenticación real**.
+El proyecto tiene una **base frontend sólida y bastante completa para Etapa 1** (landing + rutas públicas + SEO base + estructura multi-tenant inicial) y ya cuenta con **envío real de emails en el formulario de contacto mediante Resend en producción**. Falta cerrar persistencia en Supabase y autenticación real para completar el backend productivo.
