@@ -1,23 +1,24 @@
-# Resumen Técnico - MGA Informática SaaS
+# Resumen Tecnico - MGA Informatica SaaS
 
-**Fecha:** 14/04/2026  
-**Etapa:** Etapa 1 (Landing Page + Autenticación básica)  
-**Estado:** En desarrollo - 85% completado
+**Fecha:** 28/04/2026  
+**Etapa:** Etapa 1 (Landing Page + Autenticación funcional)  
+**Estado:** En desarrollo - landing funcional, contacto productivo y auth privada operativa
 
 ---
 
-## 📁 Estructura de Carpetas
+## Estructura de carpetas
 
 ```
 mga-saas/
 ├── app/
-│   ├── (landing)/              # Rutas de landing pública
 │   ├── auth/
-│   │   ├── signin/page.tsx     # Página login
+│   │   ├── signin/page.tsx     # Login con redirect server-side
+│   │   ├── signin/signin-form.tsx # Form client para credenciales
 │   │   └── error/page.tsx      # Página error auth
 │   ├── api/
 │   │   ├── auth/[...nextauth]/ # NextAuth config
-│   │   └── contact/route.ts    # Formulario contacto API
+│   │   ├── contact/route.ts    # Contacto API + Resend
+│   │   └── dashboard/health/route.ts # Endpoint privado de prueba
 │   ├── dashboard/              # Sistema interno (protegido)
 │   ├── layout.tsx              # Root layout con fuentes
 │   ├── page.tsx                # Home - Landing completa
@@ -37,7 +38,7 @@ mga-saas/
 │   ├── constants.ts            # Config, colores, rutas
 │   ├── supabase.ts             # Clientes Supabase
 │   ├── database.types.ts       # TypeScript types BD
-│   └── auth.ts                 # NextAuth config (WIP)
+│   └── auth.ts                 # NextAuth config (productivo)
 ├── public/
 │   └── images/
 │       └── logos/
@@ -50,12 +51,13 @@ mga-saas/
 ├── next.config.ts
 ├── tsconfig.json
 ├── package.json
+├── proxy.ts                    # Protección de rutas privadas
 └── SUPABASE_SETUP.md           # Guía setup Supabase
 ```
 
 ---
 
-## 🛠 Tecnologías Usadas
+## Tecnologias usadas
 
 ### Frontend
 - **Next.js 16.2.3** - Framework React con SSR
@@ -69,8 +71,8 @@ mga-saas/
 
 ### Backend
 - **Next.js API Routes** - Endpoints API
-- **NextAuth.js v5** - Autenticación
-- **Credentials Provider** - Auth por email/password (placeholder)
+- **NextAuth.js** - Autenticación por sesión
+- **Credentials Provider** - Login real con email/password contra Supabase Auth
 
 ### Base de Datos
 - **Supabase** - PostgreSQL + Auth
@@ -90,7 +92,7 @@ mga-saas/
 
 ---
 
-## 🎨 Decisiones Importantes
+## Decisiones importantes
 
 ### 1. **Colores y Branding**
 - **Azul Primario (Marino):** #2E5C8A
@@ -121,30 +123,38 @@ mga-saas/
 8. Formulario contacto
 9. Footer
 
-### 5. **NextAuth Minimal**
-- Solo Credentials provider por ahora
+### 5. **NextAuth + Supabase**
+- Credentials provider conectado a `supabase.auth.signInWithPassword`
 - JWT strategy
-- Pages customizadas: /auth/signin, /auth/error
-- Placeholder de validación (TODO: Integrar Supabase auth real)
+- Pages customizadas: `/auth/signin`, `/auth/error`
+- Redirect server-side en `/auth/signin` hacia `/dashboard` cuando hay sesión
+- Protección de rutas privadas con `proxy.ts`:
+  - `/dashboard/:path*`
+  - `/api/dashboard/:path*`
 
 ---
 
-## 📡 Endpoints & Lógica Creada
+## Endpoints y logica creada
 
 ### API Endpoints
 ```
 POST /api/contact
-  - Recibe: { name, email, message }
+  - Recibe: { name, email, phone, message }
   - Valida cliente-side con React Hook Form
-  - TODO: SendEmail con Resend
+  - Envía email real con Resend (producción)
   - TODO: Guardar en Supabase tabla 'contacts'
+
+GET /api/dashboard/health
+  - Endpoint privado de prueba
+  - Protegido por proxy (requiere sesión)
 ```
 
-### Rutas Autenticación
+### Rutas de autenticación y sesión
 ```
-GET /api/auth/signin          # Formulario login
-GET /api/auth/error           # Página errores
-GET /api/auth/[...nextauth]   # NextAuth handler
+/auth/signin                 # Login (server redirect si ya hay sesión)
+/auth/error                  # Página de errores auth
+/dashboard                   # Área protegida por sesión
+/api/auth/[...nextauth]      # Handler NextAuth
 ```
 
 ### Componentes Smart (con estado)
@@ -161,7 +171,7 @@ GET /api/auth/[...nextauth]   # NextAuth handler
 
 ---
 
-## 🗄 Base de Datos - Tablas Supabase
+## Base de datos - tablas Supabase
 
 ```sql
 -- Tenants
@@ -198,7 +208,7 @@ CREATE TABLE contacts (
 
 ---
 
-## 🔐 Variables de Entorno (.env.local)
+## Variables de entorno (.env.local)
 
 ```
 # NextAuth
@@ -228,7 +238,7 @@ WHATSAPP_NUMBER=+542974036526
 
 ---
 
-## ✅ Completado - Etapa 1
+## Completado - Etapa 1
 
 - ✅ Proyecto Next.js 16 configurado
 - ✅ Tailwind CSS con paleta MGA
@@ -243,10 +253,13 @@ WHATSAPP_NUMBER=+542974036526
 - ✅ Formulario contacto con validación
 - ✅ Footer
 - ✅ Navbar con links
-- ✅ Página signin básica
+- ✅ Página signin conectada con NextAuth real
 - ✅ Página error auth
-- ✅ API endpoint contact (parcial)
-- ✅ NextAuth configurado (placeholder)
+- ✅ API endpoint contact productivo (Resend)
+- ✅ NextAuth + Supabase auth real
+- ✅ Protección de `/dashboard/*` con `proxy.ts`
+- ✅ Protección de `/api/dashboard/*` con `proxy.ts`
+- ✅ Dashboard con sesión server-side y logout funcional
 - ✅ Supabase setup instructions
 - ✅ Animaciones Framer Motion
 - ✅ Iconos Lucide profesionales
@@ -254,12 +267,10 @@ WHATSAPP_NUMBER=+542974036526
 
 ---
 
-## ⚠️ Pendiente - TODO
+## Pendiente - TODO
 
 ### Funcionalidad Crítica (Etapa 1)
-- [ ] **Integrar Resend API** - Enviar emails formulario
 - [ ] **Guardar contactos en Supabase** - Tabla contacts
-- [ ] **NextAuth + Supabase real** - Autenticación funcionando
 - [ ] **Validación backend** - Sanitizar inputs
 - [ ] **Rate limiting** - Prevenir spam formulario
 
@@ -270,8 +281,6 @@ WHATSAPP_NUMBER=+542974036526
 - [ ] Dark mode toggle
 
 ### Etapa 2 (Sistema Interno)
-- [ ] Dashboard protegido (/dashboard)
-- [ ] Middleware NextAuth
 - [ ] Sistema de reservas (Google Calendar API)
 - [ ] Gestión de usuarios/tenants
 - [ ] Panel admin
@@ -290,17 +299,17 @@ WHATSAPP_NUMBER=+542974036526
 
 ---
 
-## 🚀 Próximos Pasos Inmediatos
+## Proximos pasos inmediatos
 
-1. **Integrar Resend** - Probar envío de emails
-2. **Conectar Supabase real** - Guardar contactos
-3. **Autenticación funcional** - Login/signup con Supabase
-4. **SEO base** - Metadata, sitemap
-5. **Deploy a Vercel** - URL pública de prueba
+1. **Persistir contactos en Supabase** - completar insert en `contacts`
+2. **Rate limiting y hardening auth** - proteger login/contact de abuso
+3. **SEO avanzado** - structured data y Open Graph extendido
+4. **Dashboard funcional** - contenido real de negocio (más allá de health/check)
+5. **Deploy a Vercel** - validación end-to-end en entorno público
 
 ---
 
-## 📊 Stack Resumen
+## Stack resumen
 
 ```
 Frontend:  Next.js + React + TypeScript + Tailwind + Framer Motion
@@ -312,7 +321,7 @@ Hosting:   Vercel
 
 ---
 
-## 📞 Contacto & Credenciales
+## Contacto y credenciales
 
 - **Email Empresa:** gustavo.mgainformatica@gmail.com
 - **WhatsApp:** +542974036526
@@ -321,6 +330,6 @@ Hosting:   Vercel
 
 ---
 
-**Última actualización:** 14/04/2026  
+**Última actualización:** 28/04/2026  
 **Desarrollador:** Claude Code Assistant  
-**Estado:** 85% Etapa 1 completada (Clientes section removida)
+**Estado:** Etapa 1 avanzada con contacto productivo y autenticación privada operativa

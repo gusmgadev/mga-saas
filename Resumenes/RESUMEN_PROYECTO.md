@@ -2,7 +2,7 @@
 
 **Proyecto:** MGA Informática SaaS  
 **Fecha de actualización:** 28/04/2026  
-**Estado general:** Etapa 1 (Landing) avanzada, con autenticación y backend todavía en implementación parcial.
+**Estado general:** Etapa 1 (Landing) avanzada, con autenticación funcional (NextAuth + Supabase) y backend en implementación parcial.
 
 ---
 
@@ -14,12 +14,14 @@
 - `/servicios/[slug]` (detalle dinámico por servicio)
 
 ### Autenticación
-- `/auth/signin` (pantalla de acceso, UI lista, lógica real pendiente)
+- `/auth/signin` (login funcional; redirect server-side a `/dashboard` si ya hay sesión activa)
 - `/auth/error` (pantalla de error de autenticación)
+- `/dashboard` (ruta protegida con sesión activa)
 
 ### API
 - `POST /api/contact` (recibe formulario, valida datos y envía emails reales con Resend)
-- `GET|POST /api/auth/[...nextauth]` (NextAuth con Credentials provider en modo placeholder)
+- `GET|POST /api/auth/[...nextauth]` (NextAuth real con Credentials contra Supabase Auth)
+- `GET /api/dashboard/health` (endpoint privado bajo `/api/dashboard`, protegido por proxy)
 
 ### SEO técnico
 - `/robots.txt` generado por `app/robots.ts`
@@ -69,9 +71,13 @@ Componentes activos detectados:
 - API de contacto integrada con Resend: envía emails reales en producción, con manejo de errores y `replyTo` del remitente.
 
 ### Autenticación
-- NextAuth configurado con Credentials provider.
+- Login real con email/password contra Supabase Auth desde NextAuth Credentials.
+- Redirect server-side en `/auth/signin` hacia `/dashboard` cuando hay sesión activa.
+- Protección de rutas privadas con `proxy.ts`:
+  - `/dashboard/:path*`
+  - `/api/dashboard/:path*`
+- Dashboard con lectura de sesión server-side y botón funcional de cierre de sesión.
 - Páginas personalizadas de sign in y error.
-- Persistencia/autorización real aún no implementada (authorize placeholder).
 
 ### SEO básico
 - Metadata global en `app/layout.tsx` (title, description, OG, Twitter, robots).
@@ -83,6 +89,7 @@ Componentes activos detectados:
 
 - `lib/constants.ts`: branding, contacto, servicios, colores de secciones, rutas API y config auth.
 - `lib/clients.ts`: listado de clientes para secciones visuales.
+- `lib/auth.ts`: configuración central de NextAuth y provider de credenciales conectado a Supabase.
 - `lib/supabase.ts`: fábricas de cliente Supabase (browser/server).
 - `lib/database.types.ts`: tipado de tablas `tenants`, `users`, `contacts`.
 
@@ -91,19 +98,18 @@ Componentes activos detectados:
 ## Pendientes detectados en codigo
 
 1. Guardar contactos en Supabase desde `/api/contact` (código comentado/TODO).
-2. Implementar autenticación real en NextAuth Credentials (hoy devuelve usuario mock).
-3. Conectar formulario de signin con flujo real de NextAuth (hoy solo `console.log`).
-4. Completar backend con validación robusta (actualmente validación básica de campos).
+2. Implementar rate limiting para intentos de login (hardening de seguridad).
+3. Completar backend con validación robusta (actualmente validación básica de campos).
 
 ---
 
 ## Diferencias con resumenes viejos
 
 - Los archivos históricos en `Resumenes/` mencionan estructura y estado que ya no coincide al 100% con el código actual.
-- El estado real hoy es: landing funcional y extensa, con SEO base implementado y Resend operativo para contacto; queda pendiente completar persistencia en Supabase y autenticación real.
+- El estado real hoy es: landing funcional y extensa, con SEO base implementado, Resend operativo para contacto y autenticación funcional con rutas privadas protegidas.
 
 ---
 
 ## Conclusion
 
-El proyecto tiene una **base frontend sólida y bastante completa para Etapa 1** (landing + rutas públicas + SEO base + estructura multi-tenant inicial) y ya cuenta con **envío real de emails en el formulario de contacto mediante Resend en producción**. Falta cerrar persistencia en Supabase y autenticación real para completar el backend productivo.
+El proyecto tiene una **base frontend sólida y bastante completa para Etapa 1** (landing + rutas públicas + SEO base + estructura multi-tenant inicial), **envío real de emails en producción con Resend** y **autenticación funcional con protección de rutas privadas**. Queda pendiente cerrar persistencia de contactos en Supabase y reforzar seguridad (rate limiting y hardening adicional).

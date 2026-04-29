@@ -25,6 +25,11 @@ Resumen actualizado con el estado real actual del proyecto.
 **Estado:** Recomendado como referencia principal  
 **Ultima actualizacion:** 28/04/2026
 
+**Novedades recientes incluidas en el resumen vigente:**
+- Resend operativo en produccion para formulario de contacto.
+- Autenticacion funcional con NextAuth + Supabase.
+- Proteccion de rutas privadas con `proxy.ts` (`/dashboard/*` y `/api/dashboard/*`).
+
 ---
 
 ## Documentos historicos / referencia
