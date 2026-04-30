@@ -27,23 +27,24 @@ export type Database = {
           created_at?: string;
         };
       };
-      users: {
+      // profiles extends auth.users (managed by Supabase Auth)
+      // email is read from auth.users — not stored here
+      profiles: {
         Row: {
-          id: string;
-          email: string;
-          tenant_id: string;
+          id: string;           // same UUID as auth.users.id
+          full_name: string | null;
+          tenant_id: string | null;
           created_at: string;
         };
         Insert: {
-          id?: string;
-          email: string;
-          tenant_id: string;
+          id: string;           // must match an existing auth.users.id
+          full_name?: string | null;
+          tenant_id?: string | null;
           created_at?: string;
         };
         Update: {
-          id?: string;
-          email?: string;
-          tenant_id?: string;
+          full_name?: string | null;
+          tenant_id?: string | null;
           created_at?: string;
         };
       };
@@ -54,7 +55,7 @@ export type Database = {
           email: string;
           message: string;
           phone: string | null;
-          tenant_id: string;
+          tenant_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -63,7 +64,7 @@ export type Database = {
           email: string;
           message: string;
           phone?: string | null;
-          tenant_id: string;
+          tenant_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -72,7 +73,7 @@ export type Database = {
           email?: string;
           message?: string;
           phone?: string | null;
-          tenant_id?: string;
+          tenant_id?: string | null;
           created_at?: string;
         };
       };

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendContactEmail } from "@/services/resend";
+import { createSupabaseServerClient } from "@/lib/supabase";
 
 function escapeHtml(value: string): string {
   return value
@@ -20,28 +19,10 @@ export async function POST(request: NextRequest) {
     const phone = String(body?.phone ?? "").trim();
     const message = String(body?.message ?? "").trim();
 
-    // Validación básica
     if (!name || !email || !message) {
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
         { status: 400 }
-      );
-    }
-
-    const contactEmailTo = process.env.CONTACT_EMAIL_TO;
-    const contactEmailFrom = process.env.CONTACT_EMAIL_FROM || "onboarding@resend.dev";
-
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json(
-        { error: "RESEND_API_KEY no está configurada" },
-        { status: 500 }
-      );
-    }
-
-    if (!contactEmailTo) {
-      return NextResponse.json(
-        { error: "CONTACT_EMAIL_TO no está configurada" },
-        { status: 500 }
       );
     }
 
@@ -50,19 +31,11 @@ export async function POST(request: NextRequest) {
     const sanitizedPhone = escapeHtml(phone);
     const sanitizedMessage = escapeHtml(message).replaceAll("\n", "<br />");
 
-    const { error } = await resend.emails.send({
-      from: contactEmailFrom,
-      to: contactEmailTo,
-      replyTo: email,
-      subject: `Nueva consulta web - ${name}`,
-      html: `
-        <h2>Nueva consulta desde el formulario web</h2>
-        <p><strong>Nombre:</strong> ${sanitizedName}</p>
-        <p><strong>Email:</strong> ${sanitizedEmail}</p>
-        <p><strong>Teléfono:</strong> ${sanitizedPhone || "-"}</p>
-        <p><strong>Mensaje:</strong></p>
-        <p>${sanitizedMessage}</p>
-      `,
+    const { error } = await sendContactEmail({
+      name: sanitizedName,
+      email: sanitizedEmail,
+      phone: sanitizedPhone,
+      message: sanitizedMessage,
     });
 
     if (error) {
@@ -71,6 +44,20 @@ export async function POST(request: NextRequest) {
         { error: "No se pudo enviar el email" },
         { status: 502 }
       );
+    }
+
+    const supabase = createSupabaseServerClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: dbError } = await (supabase as any).from("contacts").insert({
+      name: sanitizedName,
+      email: sanitizedEmail,
+      phone: sanitizedPhone || null,
+      message: sanitizedMessage.replaceAll("<br />", "\n"),
+      tenant_id: null,
+    });
+
+    if (dbError) {
+      console.error("Error al guardar contacto en Supabase:", dbError);
     }
 
     return NextResponse.json(

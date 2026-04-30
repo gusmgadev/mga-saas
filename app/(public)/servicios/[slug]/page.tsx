@@ -3,8 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { SERVICES, BRAND } from "@/lib/constants";
 import { Globe, Briefcase, Wrench, BarChart3, CheckCircle, ArrowLeft } from "lucide-react";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/landing/navbar";
+import { Footer } from "@/components/landing/footer";
 
 const iconMap = { Globe, Briefcase, Wrench, BarChart3 };
 

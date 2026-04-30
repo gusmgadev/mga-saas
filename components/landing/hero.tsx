@@ -2,7 +2,7 @@
 
 import { BRAND, SECTION_COLORS } from "@/lib/constants";
 import Image from "next/image";
-import { ServicesBanner } from "@/components/services-banner";
+import { ServicesBanner } from "@/components/landing/services-banner";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";

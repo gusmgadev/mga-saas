@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/landing/navbar";
+import { Footer } from "@/components/landing/footer";
 import { BRAND } from "@/lib/constants";
 import { CLIENTS } from "@/lib/clients";
 import { Users } from "lucide-react";
