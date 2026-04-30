@@ -27,6 +27,10 @@ create policy "admin puede actualizar cualquier user"
     select 1 from public.users where id = auth.uid() and role = 'administrador'
   ));
 
+-- Drop existing trigger/function if present to avoid conflicts
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+
 -- Trigger to create user profile on signup
 create or replace function public.handle_new_user()
 returns trigger
