@@ -27,14 +27,14 @@ export function SignInForm() {
       callbackUrl,
     });
 
-    if (!result || result.error) {
+    setLoading(false);
+
+    if (result?.error) {
       setAuthError("Email o contraseña inválidos.");
-      setLoading(false);
       return;
     }
 
-    router.push(result.url || callbackUrl);
-    setLoading(false);
+    router.push(result?.url || callbackUrl);
   };
 
   return (
@@ -119,4 +119,3 @@ export function SignInForm() {
     </div>
   );
 }
-
