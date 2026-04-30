@@ -6,7 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BRAND } from "@/lib/constants";
 
-export function SignInForm() {
+export function SignInForm({
+  showRegistered,
+  showAccessDenied,
+}: {
+  showRegistered?: boolean;
+  showAccessDenied?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -63,6 +69,18 @@ export function SignInForm() {
           <h2 className="text-2xl font-bold text-center mb-6" style={{ color: BRAND.colors.primary }}>
             Acceso al Sistema
           </h2>
+
+          {showRegistered && (
+            <p className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              Cuenta creada correctamente. Ingresá con tu email y contraseña.
+            </p>
+          )}
+
+          {showAccessDenied && (
+            <p className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-700">
+              No tenés permisos para acceder a esa sección.
+            </p>
+          )}
 
           {authError && (
             <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
