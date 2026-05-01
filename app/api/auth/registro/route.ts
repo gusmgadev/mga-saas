@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/services/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +30,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user via Supabase Auth (triggers handle_new_user to create profile)
+    const supabase = createSupabaseServerClient();
+    const { data: defaultRole } = await supabase
+      .from("roles")
+      .select("id")
+      .eq("is_default", true)
+      .single() as { data: { id: number } | null; error: unknown };
+
+    if (!defaultRole) {
+      return NextResponse.json(
+        { error: "No se encontró un rol por defecto" },
+        { status: 500 }
+      );
+    }
+
     const { data, error } = await supabaseAdmin.auth.signUp({
       email,
       password,

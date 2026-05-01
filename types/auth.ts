@@ -1,15 +1,23 @@
-export type UserRole = "administrador" | "usuario";
+export type UserRole = string;
+
+export type Role = {
+  id: number;
+  name: string;
+  description: string | null;
+  is_default: boolean;
+};
 
 export type UserProfile = {
   id: string;
   email: string;
   name: string | null;
-  role: UserRole;
+  role_id: number;
+  role_name: string;
   created_at: string;
 };
 
 export type RolePermission = {
-  role: UserRole;
+  role_id: number;
   module: string;
   can_view: boolean;
   can_create: boolean;
@@ -23,13 +31,15 @@ declare module "next-auth" {
       id: string;
       email: string;
       name: string;
-      role: UserRole;
+      role: string;
+      role_id: number;
     };
   }
 }
 
 declare module "@auth/core/jwt" {
   interface JWT {
-    role: UserRole;
+    role: string;
+    role_id: number;
   }
 }

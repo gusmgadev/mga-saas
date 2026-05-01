@@ -1,25 +1,83 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase";
-import Link from "next/link";
+"use client";
+
+import { useState, useEffect } from "react";
+import { SessionProvider, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { BRAND } from "@/lib/constants";
 
-export default async function AdminUsersPage() {
-  const session = await auth();
+type Role = {
+  id: number;
+  name: string;
+};
 
-  if (!session?.user) {
-    redirect("/auth/signin");
+type User = {
+  id: string;
+  email: string;
+  name: string | null;
+  role_id: number;
+  role_name: string;
+  created_at: string;
+};
+
+function AdminUsersContent() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [changingRole, setChangingRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+    }
+    if (status === "authenticated" && session?.user?.role !== "Administrador") {
+      router.push("/dashboard?error=access_denied");
+    }
+  }, [session, status, router]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    Promise.all([
+      fetch("/api/admin/usuarios").then((res) => res.json()),
+      fetch("/api/admin/roles").then((res) => res.json()),
+    ]).then(([usersData, rolesData]) => {
+      setUsers(usersData || []);
+      setRoles(rolesData || []);
+      setLoading(false);
+    });
+  }, [status]);
+
+  const handleChangeRole = async (userId: string, newRoleId: number) => {
+    setChangingRole(userId);
+    try {
+      const res = await fetch(`/api/admin/usuarios/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role_id: newRoleId }),
+      });
+
+      if (res.ok) {
+        const role = roles.find((r) => r.id === newRoleId);
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, role_id: newRoleId, role_name: role?.name || "" } : u
+          )
+        );
+      }
+    } finally {
+      setChangingRole(null);
+    }
+  };
+
+  if (loading || status === "loading") {
+    return (
+      <main className="min-h-screen px-6 py-10 flex items-center justify-center">
+        <p className="text-gray-500">Cargando usuarios...</p>
+      </main>
+    );
   }
-
-  if (session.user.role !== "administrador") {
-    redirect("/dashboard?error=access_denied");
-  }
-
-  const supabase = createSupabaseServerClient();
-  const { data: users } = await supabase
-    .from("users")
-    .select("id, email, name, role, created_at")
-    .order("created_at", { ascending: false }) as { data: { id: string; email: string; name: string | null; role: string; created_at: string }[] | null; error: unknown };
 
   return (
     <main className="min-h-screen px-6 py-10">
@@ -31,13 +89,13 @@ export default async function AdminUsersPage() {
             </h1>
             <p className="text-gray-500 mt-1">Panel de administración</p>
           </div>
-          <Link
-            href="/dashboard"
+          <button
+            onClick={() => router.push("/dashboard")}
             className="px-4 py-2 rounded-lg text-sm font-medium border transition hover:bg-gray-50"
             style={{ borderColor: BRAND.colors.primary, color: BRAND.colors.primary }}
           >
             ← Volver al Dashboard
-          </Link>
+          </button>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -51,60 +109,44 @@ export default async function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {users?.map((user) => (
+              {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm text-gray-800">{user.name || "—"}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        user.role === "administrador"
+                        user.role_name === "Administrador"
                           ? "bg-blue-100 text-blue-800"
                           : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {user.role}
+                      {user.role_name}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    {user.id !== session.user.id ? (
-                      <form
-                        action={async (formData) => {
-                          "use server";
-                          const newRole = formData.get("role");
-                          const userId = formData.get("userId");
-                          await fetch(`/api/admin/usuarios/${userId}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ role: newRole }),
-                          });
-                        }}
-                        className="flex gap-2"
-                      >
-                        <input type="hidden" name="userId" value={user.id} />
-                        {user.role === "usuario" ? (
-                          <input type="hidden" name="role" value="administrador" />
-                        ) : (
-                          <input type="hidden" name="role" value="usuario" />
-                        )}
-                        <button
-                          type="submit"
-                          className="text-xs px-3 py-1.5 rounded font-medium transition hover:opacity-80"
-                          style={{
-                            backgroundColor: BRAND.colors.primary,
-                            color: "white",
-                          }}
+                    {user.id !== session?.user?.id ? (
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={user.role_id}
+                          onChange={(e) => handleChangeRole(user.id, parseInt(e.target.value, 10))}
+                          disabled={changingRole === user.id}
+                          className="text-xs px-2 py-1.5 rounded border border-gray-300 bg-white disabled:opacity-50"
                         >
-                          {user.role === "usuario" ? "Promover a Admin" : "Cambiar a Usuario"}
-                        </button>
-                      </form>
+                          {roles.map((role) => (
+                            <option key={role.id} value={role.id}>
+                              {role.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     ) : (
                       <span className="text-xs text-gray-400 italic">Tu cuenta</span>
                     )}
                   </td>
                 </tr>
               ))}
-              {(!users || users.length === 0) && (
+              {users.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
                     No hay usuarios registrados
@@ -116,5 +158,13 @@ export default async function AdminUsersPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AdminUsersPage() {
+  return (
+    <SessionProvider>
+      <AdminUsersContent />
+    </SessionProvider>
   );
 }

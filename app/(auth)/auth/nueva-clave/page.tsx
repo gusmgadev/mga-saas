@@ -3,16 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Eye, EyeOff, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 import { theme } from "@/lib/theme";
 
 const schema = z
   .object({
-    name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
-    email: z.string().min(1, "El email es requerido").email("Ingresá un email válido"),
     password: z
       .string()
       .min(8, "La contraseña debe tener al menos 8 caracteres")
@@ -41,14 +38,19 @@ function getPasswordStrength(password: string): { level: number; label: string; 
   return { level: 3, label: "Fuerte", color: theme.colors.success };
 }
 
-export default function RegisterPage() {
-  const router = useRouter();
+type PageState = "loading" | "form" | "success" | "error";
+
+export default function NuevaClavePage() {
+  const [pageState, setPageState] = useState<PageState>("loading");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [generalError, setGeneralError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  );
 
   const {
     register,
@@ -56,116 +58,100 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+    defaultValues: { password: "", confirmPassword: "" },
   });
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setPageState("form");
+      } else {
+        setPageState("error");
+      }
+    };
+    checkSession();
+  }, []);
+
+  const onSubmit = async (data: FormData) => {
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: data.password });
+    setLoading(false);
+
+    if (error) {
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setPageState("success");
+  };
 
   const strength = getPasswordStrength(password);
 
-  const onSubmit = async (data: FormData) => {
-    setGeneralError("");
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/registro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name.trim(), email: data.email, password: data.password }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        setGeneralError(result.error || "Error al crear la cuenta");
-        setLoading(false);
-        return;
-      }
-
-      setSuccess(true);
-    } catch {
-      setGeneralError("Error de conexión. Intentá de nuevo.");
-      setLoading(false);
-    }
-  };
-
-  if (success) {
+  if (pageState === "loading") {
     return (
-      <>
-        <div className="text-center">
-          <CheckCircle size={48} className="mx-auto mb-4" style={{ color: theme.colors.success }} />
-          <h1 className="text-xl font-bold" style={{ color: theme.colors.text }}>
-            ¡Cuenta creada!
-          </h1>
-          <p className="text-sm mt-2 mb-6" style={{ color: theme.colors.textMuted }}>
-            Revisá tu email para verificar tu cuenta.
-          </p>
-          <button
-            onClick={() => router.push("/auth/signin")}
-            className="w-full py-2.5 rounded-md font-semibold text-white transition hover:opacity-90"
-            style={{ backgroundColor: theme.colors.primary }}
-          >
-            Ir al login
-          </button>
-        </div>
-      </>
+      <div className="text-center py-8">
+        <Loader2 size={32} className="mx-auto animate-spin mb-4" style={{ color: theme.colors.primary }} />
+        <p className="text-sm" style={{ color: theme.colors.textMuted }}>
+          Verificando tu email...
+        </p>
+      </div>
+    );
+  }
+
+  if (pageState === "error") {
+    return (
+      <div className="text-center">
+        <XCircle size={48} className="mx-auto mb-4" style={{ color: theme.colors.error }} />
+        <h1 className="text-xl font-bold" style={{ color: theme.colors.text }}>
+          Link inválido o expirado
+        </h1>
+        <p className="text-sm mt-2 mb-6" style={{ color: theme.colors.textMuted }}>
+          Pedí un nuevo link de recuperación.
+        </p>
+        <a
+          href="/auth/reset"
+          className="w-full py-2.5 rounded-md font-semibold text-white text-center block transition hover:opacity-90"
+          style={{ backgroundColor: theme.colors.primary }}
+        >
+          Volver a recuperar contraseña
+        </a>
+      </div>
+    );
+  }
+
+  if (pageState === "success") {
+    return (
+      <div className="text-center">
+        <CheckCircle size={48} className="mx-auto mb-4" style={{ color: theme.colors.success }} />
+        <h1 className="text-xl font-bold" style={{ color: theme.colors.text }}>
+          ¡Contraseña actualizada!
+        </h1>
+        <a
+          href="/auth/signin"
+          className="w-full py-2.5 rounded-md font-semibold text-white text-center block mt-6 transition hover:opacity-90"
+          style={{ backgroundColor: theme.colors.primary }}
+        >
+          Ir al login
+        </a>
+      </div>
     );
   }
 
   return (
     <>
       <h1 className="text-xl font-bold text-center" style={{ color: theme.colors.text }}>
-        Crear cuenta
+        Nueva contraseña
       </h1>
       <p className="text-center text-sm mt-1 mb-6" style={{ color: theme.colors.textMuted }}>
-        Completá tus datos para registrarte
+        Ingresá tu nueva contraseña
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Nombre */}
-        <div>
-          <label className="block text-sm font-semibold mb-1.5" style={{ color: theme.colors.text }}>
-            Nombre completo
-          </label>
-          <input
-            type="text"
-            {...register("name")}
-            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2"
-            style={{
-              borderColor: errors.name ? theme.colors.error : theme.colors.border,
-            }}
-            placeholder="Juan García"
-          />
-          {errors.name && (
-            <p className="mt-1 text-sm" style={{ color: theme.colors.error }}>
-              {errors.name.message}
-            </p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-sm font-semibold mb-1.5" style={{ color: theme.colors.text }}>
-            Email
-          </label>
-          <input
-            type="email"
-            {...register("email")}
-            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2"
-            style={{
-              borderColor: errors.email ? theme.colors.error : theme.colors.border,
-            }}
-            placeholder="tu@email.com"
-          />
-          {errors.email && (
-            <p className="mt-1 text-sm" style={{ color: theme.colors.error }}>
-              {errors.email.message}
-            </p>
-          )}
-        </div>
-
         {/* Password */}
         <div>
           <label className="block text-sm font-semibold mb-1.5" style={{ color: theme.colors.text }}>
-            Contraseña
+            Nueva contraseña
           </label>
           <div className="relative">
             <input
@@ -191,7 +177,6 @@ export default function RegisterPage() {
               {errors.password.message}
             </p>
           )}
-          {/* Indicador de fortaleza */}
           {password && (
             <div className="mt-2">
               <div className="flex gap-1 mb-1">
@@ -212,7 +197,7 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Confirmar Password */}
+        {/* Confirmar */}
         <div>
           <label className="block text-sm font-semibold mb-1.5" style={{ color: theme.colors.text }}>
             Confirmar contraseña
@@ -242,49 +227,22 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Error general */}
-        {generalError && (
-          <div
-            className="flex items-center gap-2 rounded-lg border p-3 text-sm"
-            style={{
-              backgroundColor: "rgba(226,75,74,0.08)",
-              borderColor: theme.colors.error,
-              color: theme.colors.error,
-            }}
-          >
-            <AlertCircle size={16} />
-            <span>{generalError}</span>
-          </div>
-        )}
-
-        {/* Botón */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 font-semibold text-white disabled:opacity-60 flex items-center justify-center gap-2 hover:brightness-95"
-          style={{
-            backgroundColor: theme.colors.primary,
-            borderRadius: theme.radii.sm,
-            transition: theme.transitions.fast,
-          }}
+          className="w-full py-2.5 rounded-md font-semibold text-white transition disabled:opacity-60 flex items-center justify-center gap-2"
+          style={{ backgroundColor: theme.colors.primary }}
         >
           {loading ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              Creando cuenta...
+              Actualizando...
             </>
           ) : (
-            "Crear cuenta"
+            "Actualizar contraseña"
           )}
         </button>
       </form>
-
-      <p className="text-center text-sm mt-5" style={{ color: theme.colors.textMuted }}>
-        ¿Ya tenés cuenta?{" "}
-        <Link href="/auth/signin" className="font-semibold hover:underline" style={{ color: theme.colors.primary }}>
-          Ingresá
-        </Link>
-      </p>
     </>
   );
 }

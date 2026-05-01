@@ -1,21 +1,29 @@
-// MGA Branding & Colors
+import { theme } from "./theme";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compatibilidad — 23 componentes existentes importan desde acá.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const BRAND = {
-  name: "MGA Informática",
-  tagline: "Soluciones Tecnológicas",
+  name: theme.company.name,
+  tagline: theme.company.tagline,
   colors: {
-    primary: "#2E5C8A", // Azul Marino
-    secondary: "#6BA3D0", // Azul Claro
-    light: "#A8D0E8", // Azul Gradiente
-    dark: "#000000",
-    lightBg: "#F5F5F5",
+    primary:   theme.colors.primary,
+    secondary: theme.colors.secondary,
+    light:     theme.colors.accent,
+    dark:      theme.colors.dark,
+    lightBg:   theme.colors.background,
   },
 };
 
-// Contact Information
 export const CONTACT = {
-  email: "gustavo.mgainformatica@gmail.com",
-  whatsapp: "+54 (297) 4036526",
+  email:    theme.contact.email,
+  whatsapp: theme.contact.phone,
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// App-specific — datos propios de esta aplicación.
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Services Offered - Using icon names (will use Lucide React)
 export const SERVICES = [

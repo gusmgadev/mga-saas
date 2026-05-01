@@ -13,58 +13,82 @@ const ACTIONS = [
   { key: "can_delete", label: "Eliminar" },
 ] as const;
 
+type Role = {
+  id: number;
+  name: string;
+  description: string | null;
+  is_default: boolean;
+};
+
 type PermissionModule = { can_view: boolean; can_create: boolean; can_edit: boolean; can_delete: boolean };
-type Permission = Record<string, Record<string, PermissionModule>>;
+type PermissionsByRole = Record<number, Record<string, PermissionModule>>;
 
 function PermissionsContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"usuario" | "administrador">("usuario");
-  const [permissions, setPermissions] = useState<Permission>({ usuario: {}, administrador: {} });
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [activeRoleId, setActiveRoleId] = useState<number | null>(null);
+  const [permissions, setPermissions] = useState<PermissionsByRole>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [adminRoleId, setAdminRoleId] = useState<number | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
     }
-    if (status === "authenticated" && session?.user?.role !== "administrador") {
+    if (status === "authenticated" && session?.user?.role !== "Administrador") {
       router.push("/dashboard?error=access_denied");
     }
   }, [session, status, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
-    fetch("/api/admin/permisos?role=usuario")
+
+    fetch("/api/admin/roles")
       .then((res) => res.json())
-      .then((data) => {
-        const perm: Permission = { usuario: {}, administrador: {} };
-        data.forEach((p: { module: string; can_view: boolean; can_create: boolean; can_edit: boolean; can_delete: boolean }) => {
-          perm.usuario[p.module] = {
-            can_view: p.can_view,
-            can_create: p.can_create,
-            can_edit: p.can_edit,
-            can_delete: p.can_delete,
-          };
+      .then((rolesData: Role[]) => {
+        setRoles(rolesData);
+        const admin = rolesData.find((r) => r.name === "Administrador");
+        if (admin) setAdminRoleId(admin.id);
+
+        const perm: PermissionsByRole = {};
+        const promises = rolesData.map((role) =>
+          fetch(`/api/admin/permisos?role_id=${role.id}`)
+            .then((res) => res.json())
+            .then((data: { module: string; can_view: boolean; can_create: boolean; can_edit: boolean; can_delete: boolean }[]) => {
+              perm[role.id] = {};
+              data.forEach((p) => {
+                perm[role.id][p.module] = {
+                  can_view: p.can_view,
+                  can_create: p.can_create,
+                  can_edit: p.can_edit,
+                  can_delete: p.can_delete,
+                };
+              });
+            })
+        );
+
+        Promise.all(promises).then(() => {
+          setPermissions(perm);
+          if (rolesData.length > 0) {
+            setActiveRoleId(rolesData[0].id);
+          }
+          setLoading(false);
         });
-        MODULES.forEach((m) => {
-          perm.administrador[m] = { can_view: true, can_create: true, can_edit: true, can_delete: true };
-        });
-        setPermissions(perm);
-        setLoading(false);
       });
   }, [status]);
 
   const handleToggle = async (module: string, actionKey: string) => {
-    if (activeTab === "administrador") return;
+    if (!activeRoleId || activeRoleId === adminRoleId) return;
 
-    const current = (permissions["usuario"]?.[module]?.[actionKey as keyof PermissionModule]) ?? false;
+    const current = (permissions[activeRoleId]?.[module]?.[actionKey as keyof PermissionModule]) ?? false;
     setPermissions((prev) => ({
       ...prev,
-      usuario: {
-        ...prev.usuario,
+      [activeRoleId]: {
+        ...(prev[activeRoleId] || {}),
         [module]: {
-          ...(prev.usuario?.[module] || { can_view: false, can_create: false, can_edit: false, can_delete: false }),
+          ...(prev[activeRoleId]?.[module] || { can_view: false, can_create: false, can_edit: false, can_delete: false }),
           [actionKey]: !current,
         },
       },
@@ -76,7 +100,7 @@ function PermissionsContent() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          role: "usuario",
+          role_id: activeRoleId,
           module,
           action: actionKey,
           value: !current,
@@ -87,7 +111,9 @@ function PermissionsContent() {
     }
   };
 
-  const currentPerms = permissions[activeTab] || {};
+  const activeRole = roles.find((r) => r.id === activeRoleId);
+  const currentPerms = activeRoleId ? permissions[activeRoleId] || {} : {};
+  const isReadOnly = activeRoleId === adminRoleId;
 
   if (loading || status === "loading") {
     return (
@@ -116,25 +142,23 @@ function PermissionsContent() {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          {(["usuario", "administrador"] as const).map((role) => (
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {roles.map((role) => (
             <button
-              key={role}
-              onClick={() => setActiveTab(role)}
+              key={role.id}
+              onClick={() => setActiveRoleId(role.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition capitalize ${
-                activeTab === role
+                activeRoleId === role.id
                   ? "text-white"
                   : "border border-gray-200 text-gray-600 hover:bg-gray-50"
               }`}
-              style={activeTab === role ? { backgroundColor: BRAND.colors.primary } : {}}
+              style={activeRoleId === role.id ? { backgroundColor: BRAND.colors.primary } : {}}
             >
-              {role}
+              {role.name}
             </button>
           ))}
         </div>
 
-        {/* Permissions Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -153,15 +177,14 @@ function PermissionsContent() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-800">{module}</td>
                   {ACTIONS.map((action) => {
                     const isChecked = currentPerms[module]?.[action.key] ?? false;
-                    const isDisabled = activeTab === "administrador";
                     return (
                       <td key={action.key} className="px-6 py-4 text-center">
                         <button
                           onClick={() => handleToggle(module, action.key)}
-                          disabled={isDisabled || saving}
+                          disabled={isReadOnly || saving}
                           className={`w-6 h-6 rounded transition ${
                             isChecked
-                              ? isDisabled
+                              ? isReadOnly
                                 ? "bg-blue-500 cursor-not-allowed"
                                 : "bg-[#6BA3D0] hover:opacity-80"
                               : "bg-gray-200 hover:bg-gray-300"
@@ -176,9 +199,15 @@ function PermissionsContent() {
           </table>
         </div>
 
-        {activeTab === "administrador" && (
+        {isReadOnly && (
           <p className="text-center text-sm text-gray-400 mt-4">
             Los permisos del administrador son fijos y no se pueden editar.
+          </p>
+        )}
+
+        {activeRole && !isReadOnly && activeRole.is_default && (
+          <p className="text-center text-sm text-gray-400 mt-4">
+            Este es el rol por defecto (se asigna automáticamente al registrarse).
           </p>
         )}
       </div>

@@ -9,18 +9,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  if (session.user.role !== "administrador") {
+  if (session.user.role !== "Administrador") {
     return NextResponse.json({ error: "Se requiere rol de administrador" }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);
-  const role = searchParams.get("role") || "usuario";
+  const roleId = searchParams.get("role_id");
+
+  if (!roleId) {
+    return NextResponse.json(
+      { error: "Falta parámetro: role_id" },
+      { status: 400 }
+    );
+  }
 
   const supabase = createSupabaseServerClient();
   const { data } = await supabase
     .from("role_permissions")
-    .select("role, module, can_view, can_create, can_edit, can_delete")
-    .eq("role", role);
+    .select("role_id, module, can_view, can_create, can_edit, can_delete")
+    .eq("role_id", parseInt(roleId, 10));
 
   return NextResponse.json(data || []);
 }
@@ -32,33 +39,40 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  if (session.user.role !== "administrador") {
+  if (session.user.role !== "Administrador") {
     return NextResponse.json({ error: "Se requiere rol de administrador" }, { status: 403 });
   }
 
   const body = await request.json();
-  const { role, module, action, value } = body;
+  const { role_id, module, action, value } = body;
 
-  if (!role || !module || !action) {
+  if (!role_id || !module || !action) {
     return NextResponse.json(
-      { error: "Faltan parámetros: role, module, action" },
+      { error: "Faltan parámetros: role_id, module, action" },
       { status: 400 }
     );
   }
 
-  if (role === "administrador") {
+  const supabase = createSupabaseServerClient();
+
+  const { data: adminRole } = await supabase
+    .from("roles")
+    .select("id")
+    .eq("name", "Administrador")
+    .single() as { data: { id: number } | null; error: unknown };
+
+  if (adminRole && role_id === adminRole.id) {
     return NextResponse.json(
       { error: "No se pueden modificar los permisos del administrador" },
       { status: 403 }
     );
   }
 
-  const supabase = createSupabaseServerClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from("role_permissions")
     .update({ [action]: value })
-    .eq("role", role)
+    .eq("role_id", role_id)
     .eq("module", module);
 
   if (error) {

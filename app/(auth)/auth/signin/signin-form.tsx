@@ -1,10 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { BRAND } from "@/lib/constants";
+import { theme } from "@/lib/theme";
+
+const schema = z.object({
+  email: z.string().min(1, "El email es requerido").email("Ingresá un email válido"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+});
+
+type FormData = z.infer<typeof schema>;
 
 export function SignInForm({
   showRegistered,
@@ -15,20 +26,27 @@ export function SignInForm({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [generalError, setGeneralError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    setGeneralError("");
     setLoading(true);
 
-    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+    const callbackUrl = searchParams.get("callbackUrl") || theme.auth.redirectAfterLogin;
     const result = await signIn("credentials", {
-      email,
-      password,
+      email: data.email,
+      password: data.password,
       redirect: false,
       callbackUrl,
     });
@@ -36,7 +54,7 @@ export function SignInForm({
     setLoading(false);
 
     if (result?.error) {
-      setAuthError("Email o contraseña inválidos.");
+      setGeneralError("Email o contraseña inválidos.");
       return;
     }
 
@@ -44,96 +62,145 @@ export function SignInForm({
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          background: `linear-gradient(135deg, ${BRAND.colors.primary} 0%, ${BRAND.colors.light} 100%)`,
-        }}
-      />
+    <>
+      <h1 className="text-xl font-bold text-center" style={{ color: theme.colors.text }}>
+        Iniciar sesión
+      </h1>
+      <p className="text-center text-sm mt-1 mb-6" style={{ color: theme.colors.textMuted }}>
+        Ingresá con tu cuenta
+      </p>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="flex justify-center mb-8">
-          <Link href="/" className="flex items-center gap-2">
-            <div
-              className="w-10 h-10 rounded"
-              style={{ backgroundColor: BRAND.colors.primary }}
+      {showRegistered && (
+        <p
+          className="mb-4 rounded-lg border p-3 text-sm"
+          style={{
+            backgroundColor: "rgba(29,158,117,0.08)",
+            borderColor: theme.colors.success,
+            color: theme.colors.success,
+          }}
+        >
+          Cuenta creada correctamente. Ingresá con tu email y contraseña.
+        </p>
+      )}
+
+      {showAccessDenied && (
+        <p
+          className="mb-4 rounded-lg border p-3 text-sm"
+          style={{
+            backgroundColor: "rgba(239,159,39,0.08)",
+            borderColor: theme.colors.warning,
+            color: theme.colors.warning,
+          }}
+        >
+          No tenés permisos para acceder a esa sección.
+        </p>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-semibold mb-1.5" style={{ color: theme.colors.text }}>
+            Email
+          </label>
+          <input
+            type="email"
+            {...register("email")}
+            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2"
+            style={{
+              borderColor: errors.email ? theme.colors.error : theme.colors.border,
+            }}
+            placeholder="tu@email.com"
+          />
+          {errors.email && (
+            <p className="mt-1 text-sm" style={{ color: theme.colors.error }}>
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div>
+          <label className="block text-sm font-semibold mb-1.5" style={{ color: theme.colors.text }}>
+            Contraseña
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              className="w-full px-3 py-2 pr-10 border rounded-md text-sm focus:outline-none focus:ring-2"
+              style={{
+                borderColor: errors.password ? theme.colors.error : theme.colors.border,
+              }}
+              placeholder="Contraseña"
             />
-            <div className="text-xl font-bold" style={{ color: BRAND.colors.primary }}>
-              {BRAND.name}
-            </div>
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h2 className="text-2xl font-bold text-center mb-6" style={{ color: BRAND.colors.primary }}>
-            Acceso al Sistema
-          </h2>
-
-          {showRegistered && (
-            <p className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-              Cuenta creada correctamente. Ingresá con tu email y contraseña.
-            </p>
-          )}
-
-          {showAccessDenied && (
-            <p className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-700">
-              No tenés permisos para acceder a esa sección.
-            </p>
-          )}
-
-          {authError && (
-            <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {authError}
-            </p>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: BRAND.colors.primary }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                placeholder="tu@email.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: BRAND.colors.primary }}>
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                placeholder="Contraseña"
-              />
-            </div>
-
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2 rounded font-semibold text-white transition hover:shadow-lg disabled:opacity-50"
-              style={{ backgroundColor: BRAND.colors.primary }}
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              {loading ? "Accediendo..." : "Acceder"}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
-          </form>
-
-          <p className="text-center text-gray-600 mt-6">
-            ¿No tienes cuenta? <Link href="/" className="underline" style={{ color: BRAND.colors.primary }}>
-              Contacta con nosotros
-            </Link>
-          </p>
+          </div>
+          {errors.password && (
+            <p className="mt-1 text-sm" style={{ color: theme.colors.error }}>
+              {errors.password.message}
+            </p>
+          )}
         </div>
+
+        {/* Error general */}
+        {generalError && (
+          <div
+            className="flex items-center gap-2 rounded-lg border p-3 text-sm"
+            style={{
+              backgroundColor: "rgba(226,75,74,0.08)",
+              borderColor: theme.colors.error,
+              color: theme.colors.error,
+            }}
+          >
+            <AlertCircle size={16} />
+            <span>{generalError}</span>
+          </div>
+        )}
+
+        {/* Botón */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2.5 font-semibold text-white disabled:opacity-60 flex items-center justify-center gap-2 hover:brightness-95"
+          style={{
+            backgroundColor: theme.colors.primary,
+            borderRadius: theme.radii.sm,
+            transition: theme.transitions.fast,
+          }}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Entrando...
+            </>
+          ) : (
+            "Entrar"
+          )}
+        </button>
+      </form>
+
+      {/* Links */}
+      <div className="mt-5 space-y-3 text-center">
+        <Link
+          href="/auth/reset"
+          className="text-sm block hover:underline"
+          style={{ color: theme.colors.primary }}
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+        <p className="text-sm" style={{ color: theme.colors.textMuted }}>
+          ¿No tenés cuenta?{" "}
+          <Link href="/auth/registro" className="font-semibold hover:underline" style={{ color: theme.colors.primary }}>
+            Registrate
+          </Link>
+        </p>
       </div>
-    </div>
+    </>
   );
 }

@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 
-const VALID_ROLES = ["administrador", "usuario"] as const;
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -14,7 +12,7 @@ export async function PATCH(
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  if (session.user.role !== "administrador") {
+  if (session.user.role !== "Administrador") {
     return NextResponse.json({ error: "Se requiere rol de administrador" }, { status: 403 });
   }
 
@@ -28,16 +26,26 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const role = body?.role;
+  const roleId = body?.role_id;
 
-  if (!VALID_ROLES.includes(role)) {
+  if (!roleId || typeof roleId !== "number") {
     return NextResponse.json(
-      { error: "Rol inválido. Debe ser 'administrador' o 'usuario'" },
+      { error: "Rol inválido. Debe proporcionar un role_id válido" },
       { status: 400 }
     );
   }
 
   const supabase = createSupabaseServerClient();
+
+  const { data: role } = await supabase
+    .from("roles")
+    .select("id")
+    .eq("id", roleId)
+    .single() as { data: { id: number } | null; error: unknown };
+
+  if (!role) {
+    return NextResponse.json({ error: "Rol no encontrado" }, { status: 404 });
+  }
 
   const { data: user, error: fetchError } = await supabase
     .from("users")
@@ -52,7 +60,7 @@ export async function PATCH(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: updateError } = await (supabase as any)
     .from("users")
-    .update({ role })
+    .update({ role_id: roleId })
     .eq("id", id);
 
   if (updateError) {
@@ -63,5 +71,5 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json({ ok: true, newRole: role });
+  return NextResponse.json({ ok: true, newRoleId: roleId });
 }

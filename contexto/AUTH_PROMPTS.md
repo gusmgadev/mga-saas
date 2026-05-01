@@ -25,10 +25,12 @@ Creá el archivo types/auth.ts con todos los tipos del sistema de auth
 tal como están definidos en el contexto adjunto.
 
 Incluir:
-- UserRole
-- UserProfile
-- RolePermission
+- UserRole (string dinámico)
+- Role (tipo completo de la tabla roles)
+- UserProfile (con role_id y role_name del join)
+- RolePermission (con role_id numérico)
 - Extensión del módulo 'next-auth' para Session y JWT
+  (session.user.role = name del rol, session.user.role_id = id numérico)
 ```
 
 ---
@@ -45,11 +47,15 @@ ESPECIFICACIONES:
 - En authorize():
     supabase.auth.signInWithPassword({ email, password })
     Si falla → throw new Error('Credenciales incorrectas')
-    Si ok → cargar fila de public.users con el id del user
-    Retornar { id, email, name, role } al token
+    Si ok → cargar fila de public.users con JOIN a public.roles:
+      select u.*, r.name as role_name
+      from public.users u
+      join public.roles r on r.id = u.role_id
+      where u.id = [id del usuario autenticado]
+    Retornar { id, email, name, role: role_name, role_id } al token
 - Callbacks:
-    jwt: agregar user.role y user.name al token
-    session: pasar token.role y token.name a session.user
+    jwt: agregar role (name) y role_id al token
+    session: pasar token.role y token.role_id a session.user
 - Session strategy: jwt
 - Pages: signIn: '/auth/signin'
 - Todos los mensajes de error en español
@@ -67,7 +73,7 @@ Creá el proxy.ts para proteger rutas según sesión y rol.
 LÓGICA:
 - Si la ruta empieza con /dashboard y no hay sesión
     → redirect /auth/signin
-- Si la ruta empieza con /dashboard/admin y role !== 'administrador'
+- Si la ruta empieza con /dashboard/admin y session.user.role !== 'Administrador'
     → redirect /dashboard con mensaje de error en query param
 - Si la ruta es /auth/signin o /auth/registro y hay sesión
     → redirect /dashboard (ya está logueado)
@@ -75,11 +81,14 @@ LÓGICA:
 
 RUTAS PROTEGIDAS:
 - /dashboard/*       → requiere sesión
-- /dashboard/admin/* → requiere role === 'administrador'
+- /dashboard/admin/* → requiere session.user.role === 'Administrador'
 - /api/dashboard/*   → requiere sesión
 
 Usar getToken de next-auth/jwt para leer el token.
 El secret es process.env.NEXTAUTH_SECRET.
+
+NOTA: la comparación de rol es contra el name del rol ('Administrador'),
+no contra el id numérico.
 ```
 
 ---
@@ -133,7 +142,9 @@ PÁGINA /auth/registro:
 ENDPOINT /api/auth/registro:
 - Recibe { name, email, password }
 - supabase.auth.signUp({ email, password })
-- Si ok → insertar en public.users { id, email, name, role: 'usuario' }
+- Si ok → obtener el rol default:
+    select id from public.roles where is_default = true limit 1
+- Insertar en public.users { id, email, name, role_id: [id del rol default] }
 - Responder 200 con { ok: true }
 - Si email duplicado → responder 409 con mensaje en español
 - Usar supabaseAdmin (service role key) para insertar en users
@@ -169,13 +180,15 @@ Creá el hook usePermissions y su endpoint en dos partes.
 
 HOOK hooks/usePermissions.ts:
 - Recibe module: string (ej: 'clientes')
-- Usa useSession de NextAuth para obtener session.user.role
-- Hace fetch a /api/permissions?role=X&module=Y
+- Usa useSession de NextAuth para obtener session.user.role_id
+- Hace fetch a /api/permissions?role_id=X&module=Y
 - Retorna: { canView, canCreate, canEdit, canDelete, loading }
 
 ENDPOINT /api/permissions/route.ts:
-- Recibe query params: role, module
-- Consulta tabla role_permissions en Supabase
+- Recibe query params: role_id, module
+- Consulta tabla role_permissions en Supabase:
+    select * from public.role_permissions
+    where role_id = [role_id] and module = [module]
 - Retorna { can_view, can_create, can_edit, can_delete }
 - Requiere sesión activa (sino 401)
 
@@ -220,19 +233,28 @@ Creá la página de gestión de usuarios para el Administrador.
 
 PÁGINA /dashboard/admin/usuarios:
 - Tabla con columnas: Nombre, Email, Rol, Creado, Acciones
-- Filtro por rol: Todos / Administrador / Usuario
+- Los roles se cargan dinámicamente desde public.roles (no hardcodeados)
+- Filtro por rol: Todos + un item por cada rol en la tabla roles
 - Búsqueda por nombre o email
 - Columna Acciones: dropdown con opciones:
-    'Cambiar a Administrador' (si es usuario)
-    'Cambiar a Usuario' (si es administrador)
+    Un item por cada rol disponible en public.roles
+    (ej: 'Cambiar a Administrador', 'Cambiar a Usuario', etc.)
+    Ocultar el rol que ya tiene el usuario
     Separador
     'Ver detalles'
 - Al cambiar rol: PATCH /api/admin/usuarios/[id]
+    Body: { role_id: number }
     Confirmar con AlertDialog antes de ejecutar
     Mostrar toast de éxito/error
 - No puede cambiar su propio rol
 - Paginación: 20 usuarios por página
-- Solo accesible si session.user.role === 'administrador'
+- Solo accesible si session.user.role === 'Administrador'
+
+QUERY para cargar usuarios:
+  select u.*, r.name as role_name
+  from public.users u
+  join public.roles r on r.id = u.role_id
+  order by u.created_at desc
 ```
 
 ---
@@ -246,23 +268,58 @@ Creá el endpoint PATCH para cambiar el rol de un usuario.
 
 ESPECIFICACIONES:
 - Verifica sesión activa
-- Verifica que session.user.role === 'administrador'
+- Verifica que session.user.role === 'Administrador'
 - No permite que el admin cambie su propio rol
-- Recibe body: { role: 'administrador' | 'usuario' }
-- Valida con Zod que role sea uno de los dos valores
-- Actualiza public.users SET role = ? WHERE id = ?
-- Responde 200 con { ok: true, newRole: role }
+- Recibe body: { role_id: number }
+- Valida con Zod que role_id sea un número positivo
+- Verifica que el role_id exista en public.roles
+- Actualiza public.users SET role_id = ? WHERE id = ?
+- Responde 200 con { ok: true, newRoleId: role_id, newRoleName: roles.name }
 - Errores:
     401 si no hay sesión
-    403 si no es admin o intenta cambiar su propio rol
-    400 si el role es inválido
-    404 si el usuario no existe
+    403 si no es Administrador o intenta cambiar su propio rol
+    400 si el role_id es inválido
+    404 si el usuario o el rol no existe
 - Todos los mensajes en español
 ```
 
 ---
 
-## 11 — Panel Admin: Gestión de Permisos
+## 11 — Panel Admin: Gestión de Roles
+
+```
+[Adjuntar: AUTH_CONTEXT.md + app/dashboard/admin/roles/page.tsx + lib/supabase.ts]
+
+Creá la página de gestión de roles para el Administrador.
+
+PÁGINA /dashboard/admin/roles:
+- Tabla con columnas: Nombre, Descripción, Default, Usuarios con este rol, Acciones
+- Botón 'Nuevo rol' que abre un modal/drawer con formulario:
+    Campos: nombre (requerido), descripción (opcional)
+    Toggle: 'Rol por defecto' (si se activa, desactiva el default del rol anterior)
+    Botón guardar → POST /api/admin/roles
+- Columna Acciones: dropdown con opciones:
+    'Editar' → mismo modal con datos precargados → PATCH /api/admin/roles/[id]
+    'Eliminar' → AlertDialog de confirmación → DELETE /api/admin/roles/[id]
+    No se puede eliminar un rol si tiene usuarios asignados
+    No se puede eliminar el único rol con is_default = true
+- Solo accesible si session.user.role === 'Administrador'
+
+ENDPOINT /api/admin/roles/route.ts:
+- GET: devuelve todos los roles con count de usuarios por rol
+- POST: crea un rol nuevo
+    Si is_default = true → actualizar todos los demás a is_default = false primero
+
+ENDPOINT /api/admin/roles/[id]/route.ts:
+- PATCH: edita nombre, descripción, is_default
+- DELETE: elimina el rol
+    Verificar que no tenga usuarios asignados antes de eliminar
+    Verificar que no sea el único rol default
+```
+
+---
+
+## 12 — Panel Admin: Gestión de Permisos
 
 ```
 [Adjuntar: AUTH_CONTEXT.md + app/dashboard/admin/permisos/page.tsx + lib/supabase.ts]
@@ -270,24 +327,28 @@ ESPECIFICACIONES:
 Creá la página de configuración de permisos por rol.
 
 PÁGINA /dashboard/admin/permisos:
-- Tabs: Administrador / Usuario
+- Tabs dinámicos: un tab por cada rol en public.roles
 - Tabla editable con filas por módulo:
     Columnas: Módulo, Ver, Crear, Editar, Eliminar
     Cada celda: toggle switch (on/off)
 - Al cambiar un switch: PATCH /api/admin/permisos
-    Body: { role, module, action, value }
+    Body: { role_id, module, action, value }
     Sin confirmar — cambio instantáneo con toast
-- El rol 'administrador' tiene todos los permisos fijos (no editables)
+- El rol 'Administrador' tiene todos los permisos fijos (no editables)
     Mostrar los switches como checked + disabled
-- Solo editable el perfil 'usuario'
+- Todos los demás roles son editables
 - Botón 'Restaurar permisos por defecto' con AlertDialog de confirmación
-- Cargar datos desde /api/admin/permisos?role=usuario
+- Cuando se crea un rol nuevo, sus permisos empiezan todos en false
+  (el admin los configura desde acá)
+- Cargar datos desde /api/admin/permisos?role_id=X
 
 ENDPOINT /api/admin/permisos/route.ts:
-- GET: devuelve todos los permisos del rol indicado en query param
+- GET: devuelve todos los permisos del role_id indicado en query param
+    Si el rol no tiene permisos aún → devolver estructura vacía (todo false)
 - PATCH: actualiza un permiso específico
-    Verifica que quien llama sea admin
-    No permite editar permisos del rol administrador
+    Verifica que quien llama sea Administrador
+    No permite editar permisos del rol Administrador
+    Si no existe la fila → hacer upsert
 ```
 
 ---
@@ -301,12 +362,14 @@ ENDPOINT /api/admin/permisos/route.ts:
 
 Describí cómo probar el sistema de auth completo en local.
 Incluir:
-- Cómo crear el primer usuario administrador en Supabase
+- Cómo crear el primer usuario Administrador en Supabase
+  (insertarlo directamente en auth.users y en public.users con role_id del Administrador)
 - Cómo probar login correcto e incorrecto
 - Cómo verificar que /dashboard sin sesión redirige al login
-- Cómo verificar que /dashboard/admin sin rol admin redirige al dashboard
+- Cómo verificar que /dashboard/admin sin rol Administrador redirige al dashboard
 - Cómo probar el cambio de rol entre usuarios
 - Cómo verificar que los permisos condicionan la UI correctamente
+- Cómo crear un rol nuevo y verificar que aparece en el panel de usuarios
 ```
 
 ### Si algo del sistema de auth no funciona
@@ -325,4 +388,4 @@ analizá la causa y proponé la solución.
 
 ---
 
-*MGA Informática | 2026 | Auth Prompts v1.1*
+*MGA Informática | 2026 | Auth Prompts v2.0*

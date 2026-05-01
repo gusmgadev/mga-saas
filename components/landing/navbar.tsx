@@ -75,6 +75,19 @@ export function Navbar() {
             <a href="/#contact" className="font-normal transition-all duration-300 whitespace-nowrap" style={{ color: "#16a34a", fontFamily: "var(--font-poppins)" }} onMouseEnter={(e) => e.currentTarget.style.color = "#15803d"} onMouseLeave={(e) => e.currentTarget.style.color = "#16a34a"}>¡Contactanos y Empezá Ya!</a>
           </div>
 
+          {/* Botón Acceder */}
+          <div className="hidden md:block">
+            <Link
+              href="/auth/signin"
+              className="font-semibold text-white px-5 py-2.5 rounded-lg transition-all hover:shadow-lg"
+              style={{ backgroundColor: BRAND.colors.primary }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = BRAND.colors.secondary}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = BRAND.colors.primary}
+            >
+              Acceder
+            </Link>
+          </div>
+
           {/* Mobile menu button */}
           <button
             className="md:hidden p-2 rounded-lg"
@@ -124,6 +137,14 @@ export function Navbar() {
             <a href="/#zoologic" onClick={closeMenu} className="py-3 px-2 font-medium rounded-lg" style={{ color: BRAND.colors.primary }}>Zoologic</a>
             <a href="/#process" onClick={closeMenu} className="py-3 px-2 font-medium rounded-lg" style={{ color: BRAND.colors.primary }}>Proceso</a>
             <a href="/#contact" onClick={closeMenu} className="py-3 px-2 font-medium rounded-lg" style={{ color: "#16a34a" }}>¡Contactanos y Empezá Ya!</a>
+            <Link
+              href="/auth/signin"
+              onClick={closeMenu}
+              className="mt-2 text-center font-semibold text-white px-5 py-2.5 rounded-lg transition-all hover:shadow-lg"
+              style={{ backgroundColor: BRAND.colors.primary }}
+            >
+              Acceder
+            </Link>
           </div>
         </div>
       )}

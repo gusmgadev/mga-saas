@@ -22,12 +22,23 @@ export function usePermissions(moduleName: string): PermissionState {
   });
 
   useEffect(() => {
-    if (!session?.user?.role) {
+    if (!session?.user?.role_id) {
       setState((prev) => ({ ...prev, loading: false }));
       return;
     }
 
-    fetch(`/api/permissions?role=${session.user.role}&module=${moduleName}`)
+    if (session.user.role === "Administrador") {
+      setState({
+        canView: true,
+        canCreate: true,
+        canEdit: true,
+        canDelete: true,
+        loading: false,
+      });
+      return;
+    }
+
+    fetch(`/api/permissions?role_id=${session.user.role_id}&module=${moduleName}`)
       .then((res) => {
         if (!res.ok) return { can_view: false, can_create: false, can_edit: false, can_delete: false };
         return res.json();
@@ -50,7 +61,7 @@ export function usePermissions(moduleName: string): PermissionState {
           loading: false,
         });
       });
-  }, [session?.user?.role, moduleName]);
+  }, [session?.user?.role_id, session?.user?.role, moduleName]);
 
   return state;
 }

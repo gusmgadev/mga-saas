@@ -30,16 +30,23 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {userRole === "administrador" && (
+      {userRole === "Administrador" && (
         <div className="mt-8 max-w-xl">
           <h2 className="text-lg font-semibold text-gray-700 mb-4">Administración</h2>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Link
               href="/dashboard/admin/usuarios"
               className="px-5 py-3 rounded-lg font-medium text-white transition hover:shadow-lg"
               style={{ backgroundColor: BRAND.colors.primary }}
             >
               Gestión de Usuarios
+            </Link>
+            <Link
+              href="/dashboard/admin/roles"
+              className="px-5 py-3 rounded-lg font-medium border transition hover:bg-gray-50"
+              style={{ borderColor: BRAND.colors.primary, color: BRAND.colors.primary }}
+            >
+              Gestión de Roles
             </Link>
             <Link
               href="/dashboard/admin/permisos"

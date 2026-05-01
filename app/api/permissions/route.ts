@@ -10,12 +10,12 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const role = searchParams.get("role");
+  const roleId = searchParams.get("role_id");
   const module = searchParams.get("module");
 
-  if (!role || !module) {
+  if (!roleId || !module) {
     return NextResponse.json(
-      { error: "Faltan parámetros: role y module" },
+      { error: "Faltan parámetros: role_id y module" },
       { status: 400 }
     );
   }
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from("role_permissions")
     .select("can_view, can_create, can_edit, can_delete")
-    .eq("role", role)
+    .eq("role_id", parseInt(roleId, 10))
     .eq("module", module)
     .single();
 
